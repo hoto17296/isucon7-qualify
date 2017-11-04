@@ -1,0 +1,2 @@
+LABEL=cloudimg-rootfs	/	 ext4	defaults	0 0
+192.168.33.11:/home/isucon/image /home/isucon/image nfs defaults,soft,intr,clientaddr=192.168.33.12
