@@ -367,7 +367,7 @@ def post_profile():
 
     if avatar_name and avatar_data:
         #cur.execute("INSERT INTO image (name, data) VALUES (%s, _binary %s)", (avatar_name, avatar_data))
-        with open('/home/isucon/image/icons/{}'.format(avatar_name)) as f:
+        with open('/home/isucon/image/icons/{}'.format(avatar_name), 'wb') as f:
             f.write(avatar_data)
         cur.execute("UPDATE user SET avatar_icon = %s WHERE id = %s", (avatar_name, user_id))
 
