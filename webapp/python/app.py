@@ -239,23 +239,23 @@ def fetch_unread():
     time.sleep(1.0)
 
     cur = dbh().cursor()
-    cur.execute('SELECT id FROM channel')
-    rows = cur.fetchall()
-    channel_ids = [row['id'] for row in rows]
-
-    res = []
-    for channel_id in channel_ids:
-        cur.execute('SELECT * FROM haveread WHERE user_id = %s AND channel_id = %s', (user_id, channel_id))
-        row = cur.fetchone()
-        if row:
-            cur.execute('SELECT COUNT(*) as cnt FROM message WHERE channel_id = %s AND %s < id',
-                        (channel_id, row['message_id']))
-        else:
-            cur.execute('SELECT COUNT(*) as cnt FROM message WHERE channel_id = %s', (channel_id,))
-        r = {}
-        r['channel_id'] = channel_id
-        r['unread'] = int(cur.fetchone()['cnt'])
-        res.append(r)
+    query = """
+        SELECT c.id AS channel_id, COALESCE(cnt, 0) AS unread
+        FROM channel AS c
+        LEFT JOIN (
+          SELECT m.channel_id, COUNT(1) AS cnt
+          FROM message AS m
+          LEFT JOIN (
+            SELECT *
+            FROM haveread
+            WHERE user_id = %s
+          ) AS h ON h.channel_id = m.channel_id
+          WHERE m.id > COALESCE(h.message_id, 0)
+          GROUP BY m.channel_id
+        ) AS r ON r.channel_id = c.id
+        """
+    cur.execute(query, (user_id,))
+    res = cur.fetchall()
     return flask.jsonify(res)
 
 
