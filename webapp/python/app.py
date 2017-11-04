@@ -180,12 +180,13 @@ def get_logout():
 @app.route('/message', methods=['POST'])
 def post_message():
     user_id = flask.session['user_id']
-    user = db_get_user(dbh().cursor(), user_id)
+    cur = dbh().cursor()
+    user = db_get_user(cur, user_id)
     message = flask.request.form['message']
     channel_id = int(flask.request.form['channel_id'])
     if not user or not message or not channel_id:
         flask.abort(403)
-    db_add_message(dbh().cursor(), channel_id, user_id, message)
+    db_add_message(cur, channel_id, user_id, message)
     return ('', 204)
 
 
