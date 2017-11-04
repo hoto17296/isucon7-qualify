@@ -7,4 +7,6 @@ alp:
 
 mysql-reload:
 	sudo rm /tmp/slow_query.log
+	sudo touch /tmp/slow_query.log
+	sudo chmod +r /tmp/slow_query.log
 	sudo systemctl restart mysql
