@@ -374,14 +374,22 @@ def post_profile():
                 avatar_name = digest + ext
                 avatar_data = data
 
+    updates = []
+
     if avatar_name and avatar_data:
         #cur.execute("INSERT INTO image (name, data) VALUES (%s, _binary %s)", (avatar_name, avatar_data))
         with open('/home/isucon/image/icons/{}'.format(avatar_name), 'wb') as f:
             f.write(avatar_data)
-        cur.execute("UPDATE user SET avatar_icon = %s WHERE id = %s", (avatar_name, user_id))
+        updates.append(('avatar_icon', avatar_name))
 
-    if display_name:
-        cur.execute("UPDATE user SET display_name = %s WHERE id = %s", (display_name, user_id))
+    if display_name and user['display_name'] != display_name:
+        updates.append(('display_name', display_name))
+
+    if len(updates) > 0:
+        values = [v for k, v in updates]
+        values.append(user_id)
+        set_query = ', '.join(['{} = %s'.format(k) for k, v in updates])
+        cur.execute("UPDATE user SET {} WHERE id = %s".format(set_query), values)
 
     return flask.redirect('/', 303)
 
