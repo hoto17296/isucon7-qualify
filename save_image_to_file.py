@@ -14,7 +14,7 @@ conn = MySQLdb.connect(**dsn)
 cur = conn.cursor()
 cur.execute('SELECT DISTINCT name, data FROM image')
 for name, data in cur:
-    with open('/home/isucon/image/{}'.format(name), 'wb') as f:
+    with open('/home/isucon/image/icons/{}'.format(name), 'wb') as f:
         f.write(data)
 cur.close()
 conn.close()
