@@ -61,6 +61,15 @@ def get_initialize():
     cur.execute("DELETE FROM channel WHERE id > 10")
     cur.execute("DELETE FROM message WHERE id > 10000")
     cur.execute("DELETE FROM haveread")
+    query = """
+        UPDATE channel AS c
+        SET message_count = (
+          SELECT COUNT(1) AS cnt
+          FROM message AS m
+          WHERE m.channel_id = c.id
+        )
+        """
+    cur.execute(query)
     cur.close()
     return ('', 204)
 
@@ -187,6 +196,7 @@ def post_message():
     if not user or not message or not channel_id:
         flask.abort(403)
     db_add_message(cur, channel_id, user_id, message)
+    cur.execute('UPDATE channel SET message_count = message_count + 1 WHERE id = %s', (channel_id,))
     return ('', 204)
 
 
@@ -221,11 +231,11 @@ def get_message():
         })
     response.reverse()
 
-    max_message_id = max(r['id'] for r in rows) if rows else 0
-    cur.execute('INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)'
-                ' VALUES (%s, %s, %s, NOW(), NOW())'
-                ' ON DUPLICATE KEY UPDATE message_id = %s, updated_at = NOW()',
-                (user_id, channel_id, max_message_id, max_message_id))
+    #max_message_id = max(r['id'] for r in rows) if rows else 0
+    cur.execute('INSERT INTO haveread (user_id, channel_id, read_count, updated_at, created_at)'
+                ' VALUES (%s, %s, (SELECT message_count FROM channel WHERE id = %s), NOW(), NOW())'
+                ' ON DUPLICATE KEY UPDATE read_count = (SELECT message_count FROM channel WHERE id = %s), updated_at = NOW()',
+                (user_id, channel_id, channel_id, channel_id))
 
     return flask.jsonify(response)
 
@@ -240,19 +250,13 @@ def fetch_unread():
 
     cur = dbh().cursor()
     query = """
-        SELECT c.id AS channel_id, COALESCE(cnt, 0) AS unread
+        SELECT c.id AS channel_id, CAST(message_count - COALESCE(read_count, 0) AS unsigned) AS unread
         FROM channel AS c
         LEFT JOIN (
-          SELECT m.channel_id, COUNT(1) AS cnt
-          FROM message AS m
-          LEFT JOIN (
-            SELECT *
-            FROM haveread
-            WHERE user_id = %s
-          ) AS h ON h.channel_id = m.channel_id
-          WHERE m.id > COALESCE(h.message_id, 0)
-          GROUP BY m.channel_id
-        ) AS r ON r.channel_id = c.id
+          SELECT channel_id, read_count
+          FROM haveread
+          WHERE user_id = %s
+        ) AS hr ON hr.channel_id = c.id
         """
     cur.execute(query, (user_id,))
     res = cur.fetchall()
