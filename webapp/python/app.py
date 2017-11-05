@@ -89,12 +89,9 @@ def login_required(func):
     def wrapper(*args, **kwargs):
         if not "user_id" in flask.session:
             return flask.redirect('/login', 303)
-        flask.request.user_id = user_id = flask.session['user_id']
-        #user = db_get_user(dbh().cursor(), user_id)
-        #if not user:
-        #    flask.session.pop('user_id', None)
-        #    return flask.redirect('/login', 303)
-        #flask.request.user = user
+        flask.request.user_id = flask.session['user_id']
+        flask.request.user_name = flask.session['user_name']
+        flask.request.user_display_name = flask.session['user_display_name']
         return func(*args, **kwargs)
     return wrapper
 
@@ -159,6 +156,8 @@ def post_register():
         flask.abort(400)
     user_id = register(dbh().cursor(), name, pw)
     flask.session['user_id'] = user_id
+    flask.session['user_name'] = name
+    flask.session['user_display_name'] = name
     return flask.redirect('/', 303)
 
 
@@ -177,6 +176,8 @@ def post_login():
             (row['salt'] + flask.request.form['password']).encode('utf-8')).hexdigest():
         flask.abort(403)
     flask.session['user_id'] = row['id']
+    flask.session['user_name'] = row['name']
+    flask.session['user_display_name'] = row['display_name']
     return flask.redirect('/', 303)
 
 
@@ -388,6 +389,7 @@ def post_profile():
 
     if display_name and user['display_name'] != display_name:
         updates.append(('display_name', display_name))
+        flask.session['user_display_name'] = display_name
 
     if len(updates) > 0:
         values = [v for k, v in updates]
