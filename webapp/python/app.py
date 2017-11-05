@@ -90,11 +90,11 @@ def login_required(func):
         if not "user_id" in flask.session:
             return flask.redirect('/login', 303)
         flask.request.user_id = user_id = flask.session['user_id']
-        user = db_get_user(dbh().cursor(), user_id)
-        if not user:
-            flask.session.pop('user_id', None)
-            return flask.redirect('/login', 303)
-        flask.request.user = user
+        #user = db_get_user(dbh().cursor(), user_id)
+        #if not user:
+        #    flask.session.pop('user_id', None)
+        #    return flask.redirect('/login', 303)
+        #flask.request.user = user
         return func(*args, **kwargs)
     return wrapper
 
@@ -316,7 +316,7 @@ def get_profile(user_name):
     if not user:
         flask.abort(404)
 
-    self_profile = flask.request.user['id'] == user['id']
+    self_profile = flask.request.user_id == user['id']
     return flask.render_template('profile.html', channels=channels, user=user, self_profile=self_profile)
 
 
